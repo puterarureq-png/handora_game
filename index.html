@@ -893,7 +893,7 @@ let peakForce=[0,0,0,0,0];
 let lastUiUpdate=0;
 
 const smoothAlpha=0.22;
-const uiInterval=170;
+const uiInterval=250;
 
 let appCal={
   active:false,
@@ -1406,7 +1406,7 @@ function parseCsvLine(line){
   if(now-lastUiUpdate>uiInterval){
     updateUI();
     setStatus('Live data received');
-    $('log').textContent='Smoothed display | Peak speed/force saved | '+String(line).trim();
+$('log').textContent='Live data received';
     lastUiUpdate=now;
   }
 }
