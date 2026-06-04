@@ -87,6 +87,82 @@ function parseCsvLine(line){
     lastUiUpdate=now;
   }
 }
+  function readFromKodular(){
+  if(window.Kodular && typeof window.Kodular.getWebViewString === 'function'){
+    let csv = window.Kodular.getWebViewString();
+
+    if(csv && csv !== lastData){
+      lastData = csv;
+      parseCsvLine(csv);
+    }
+  }
+}
+
+function updateUI(){
+  let exerciseVisible = !$('exercisePage').classList.contains('hidden');
+  let gameVisible = !$('gamePage').classList.contains('hidden');
+
+  for(let i=0;i<5;i++){
+    let rom = Math.max(0, Math.min(100, values[i].rom));
+
+    if(exerciseVisible){
+      setTxt('romText'+i, rom.toFixed(0)+'%');
+      setTxt('speedText'+i, values[i].speed.toFixed(0));
+      setTxt('peakSpeedText'+i, peakSpeed[i].toFixed(0));
+      setTxt('forceText'+i, values[i].force.toFixed(0));
+      setTxt('peakForceText'+i, peakForce[i].toFixed(0));
+
+      setW('romBar'+i, rom);
+      setW('speedBar'+i, Math.abs(values[i].speed));
+      setW('forceBar'+i, values[i].force);
+    }
+
+    if(gameVisible){
+      setTxt('gameRom'+i, rom.toFixed(0)+'%');
+    }
+  }
+}
+
+function handleSliderControls(){
+  for(let i=0;i<5;i++){
+    if(values[i].rom < 25){
+      values[i].armed = true;
+      values[i].doorArmed = true;
+      values[i].navArmed = true;
+    }
+  }
+
+  if(gameRunning && active >= 0 && values[active].armed && values[active].rom >= 55){
+    values[active].armed = false;
+    tapMole(active);
+  }
+
+  if(!$('doorPage').classList.contains('hidden') && !doorBusy && !doorFinished){
+    for(let i=0;i<5;i++){
+      if(values[i].doorArmed && values[i].rom >= 55){
+        values[i].doorArmed = false;
+        chooseDoor(i);
+        break;
+      }
+    }
+  }
+
+  if(!$('memoryPage').classList.contains('hidden')){
+    for(let i=0;i<5;i++){
+      if(values[i].navArmed && values[i].rom >= 55){
+        values[i].navArmed = false;
+
+        if(i===0) moveMemory(1,0);
+        if(i===1) moveMemory(-1,0);
+        if(i===2) moveMemory(0,-1);
+        if(i===3) moveMemory(0,1);
+        if(i===4) selectCard();
+
+        break;
+      }
+    }
+  }
+}
 function toggleMusic(){let a=$('bgMusic');a.loop=true;a.muted=false;a.playsInline=true;a.volume=$('musicVolume').value/100;if(!a.src||a.src.trim()===''){setStatus('Music file missing. Check the MP3 filename in GitHub.');return}if(a.paused){a.load();let p=a.play();if(p&&typeof p.then==='function'){p.then(()=>$('btnMusic').textContent='Music: On').catch(()=>setStatus('Music blocked or file not loaded. Tap Music again, and check the MP3 filename in GitHub.'))}else{$('btnMusic').textContent='Music: On'}}else{a.pause();$('btnMusic').textContent='Music: Off'}}function applyVolumes(){$('bgMusic').volume=$('musicVolume').value/100;$('hitSound').volume=$('sfxVolume').value/100;$('musicVolumeText').textContent=$('musicVolume').value+'%';$('sfxVolumeText').textContent=$('sfxVolume').value+'%'}
 function startAppCalibration(){appCal.active=true;appCal.enabled=false;appCal.min=[100,100,100,100,100];appCal.max=[0,0,0,0,0];updateCalibrationStatus('Move every fader from minimum to maximum, then press Stop Calibration.')}
 function stopAppCalibration(){appCal.active=false;appCal.enabled=true;updateCalibrationStatus('Calibration applied. App will remap incoming ROM to 0–100%.')}
