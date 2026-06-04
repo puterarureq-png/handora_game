@@ -20,14 +20,90 @@
 </div>
 <audio id="bgMusic" loop preload="auto" src="C418 - Haggstrom - Minecraft Volume Alpha.mp3" playsinline></audio><audio id="hitSound" preload="auto" src="audiomass-output(1).mp3"></audio>
 <script>
-const fingers=['Thumb','Index','Middle','Ring','Pinky'];let values=fingers.map(()=>({rom:0,speed:0,force:0,armed:true,doorArmed:true,navArmed:true}));let peakSpeed=[0,0,0,0,0],peakForce=[0,0,0,0,0],lastUiUpdate=0;const smoothAlpha=0.45,uiInterval=50;let appCal={active:false,enabled:false,min:[100,100,100,100,100],max:[0,0,0,0,0]};let lastData='',score=0,active=-1,gameRunning=false,timeLeft=60,gameTimer=null,moleTimer=null,moleSpeed=2600;let doorLevel=1,doorHealth=3,bombDoors=[],doorBusy=false,doorFinished=false;let memCards=[],memSelected=0,memFirst=null,memSecond=null,memBusy=false,memMatches=0,memMoves=0;const hitThreshold=55,rearmThreshold=25;function $(id){return document.getElementById(id)}function hideAll(){['menuPage','settingsPage','appPage','exercisePage','gamePage','doorPage','memoryPage'].forEach(id=>$(id).classList.add('hidden'))}function go(page){hideAll();if(page==='menu'){$('menuPage').classList.remove('hidden');return}if(page==='settings'){$('settingsPage').classList.remove('hidden');return}$('appPage').classList.remove('hidden');$(page+'Page').classList.remove('hidden');$('pageTitle').textContent=page==='exercise'?'Data Collection Mode':page==='game'?'Whack-a-Mole Game':page==='door'?'Choose a Door':'Card Matching Game'}function setStatus(t){$('status').textContent=t;$('appStatus').textContent=t}
+const fingers=['Thumb','Index','Middle','Ring','Pinky'];let values=fingers.map(()=>({rom:0,speed:0,force:0,armed:true,doorArmed:true,navArmed:true}));let peakSpeed=[0,0,0,0,0],peakForce=[0,0,0,0,0],lastUiUpdate=0;const smoothAlpha=0.45,uiInterval=50;let appCal={active:false,enabled:false,min:[100,100,100,100,100],max:[0,0,0,0,0]};let lastData='',csvBuffer='',score=0,active=-1,gameRunning=false,timeLeft=60,gameTimer=null,moleTimer=null,moleSpeed=2600;let doorLevel=1,doorHealth=3,bombDoors=[],doorBusy=false,doorFinished=false;let memCards=[],memSelected=0,memFirst=null,memSecond=null,memBusy=false,memMatches=0,memMoves=0;const hitThreshold=55,rearmThreshold=25;function $(id){return document.getElementById(id)}function hideAll(){['menuPage','settingsPage','appPage','exercisePage','gamePage','doorPage','memoryPage'].forEach(id=>$(id).classList.add('hidden'))}function go(page){hideAll();if(page==='menu'){$('menuPage').classList.remove('hidden');return}if(page==='settings'){$('settingsPage').classList.remove('hidden');return}$('appPage').classList.remove('hidden');$(page+'Page').classList.remove('hidden');$('pageTitle').textContent=page==='exercise'?'Data Collection Mode':page==='game'?'Whack-a-Mole Game':page==='door'?'Choose a Door':'Card Matching Game'}function setStatus(t){$('status').textContent=t;$('appStatus').textContent=t}
 function buildExercise(){let h='';for(let i=0;i<5;i++){h+=`<div class="card"><div class="finger">${fingers[i]}</div><div class="row"><span>ROM</span><b id="romText${i}">0%</b></div><div class="barBg"><div id="romBar${i}" class="bar"></div></div><div class="row"><span>Speed</span><b id="speedText${i}">0</b></div><div class="peak">Peak: <b id="peakSpeedText${i}">0</b></div><div class="barBg"><div id="speedBar${i}" class="bar"></div></div><div class="row"><span>Force</span><b id="forceText${i}">0</b></div><div class="peak">Peak: <b id="peakForceText${i}">0</b></div><div class="barBg"><div id="forceBar${i}" class="bar"></div></div></div>`}$('cards').innerHTML=h}
 function loadHighScore(){let h=Number(localStorage.getItem('moleHighScore')||0);if($('moleHighScore'))$('moleHighScore').textContent=h}function saveHighScore(){let h=Number(localStorage.getItem('moleHighScore')||0);if(score>h){localStorage.setItem('moleHighScore',score);h=score}if($('moleHighScore'))$('moleHighScore').textContent=h}
 function buildMoles(){let pos=[[8,58],[29,43],[46,34],[63,43],[83,58]],h='<div class="ground"></div>';for(let i=0;i<5;i++){h+=`<div class="hole" onclick="tapMole(${i})" style="left:${pos[i][0]}%;top:${pos[i][1]}%"><div id="beaver${i}" class="beaver">🦫</div><div class="label">${fingers[i]}</div></div>`}$('arena').innerHTML=h;$('inputs').innerHTML=fingers.map((f,i)=>`<div class="pill">${f}: <b id="gameRom${i}">0%</b></div>`).join('')}
 function startMoleGame(){loadHighScore();score=0;timeLeft=60;gameRunning=true;$('score').textContent=0;$('timeText').textContent=60;$('gameLog').textContent='Game started.';chooseMole();clearInterval(gameTimer);gameTimer=setInterval(()=>{timeLeft--;$('timeText').textContent=timeLeft;if(timeLeft<=0)stopMoleGame()},1000)}function stopMoleGame(){gameRunning=false;clearInterval(gameTimer);clearTimeout(moleTimer);active=-1;updateMoles();$('activeText').textContent='-';saveHighScore();$('gameLog').textContent='Game over. Score: '+score}function chooseMole(){if(!gameRunning)return;active=Math.floor(Math.random()*5);$('activeText').textContent=fingers[active];updateMoles();clearTimeout(moleTimer);moleTimer=setTimeout(chooseMole,moleSpeed)}function updateMoles(){for(let i=0;i<5;i++)$('beaver'+i).classList.toggle('up',i===active&&gameRunning)}function tapMole(i){if(gameRunning&&i===active){score++;$('score').textContent=score;if(score>Number(localStorage.getItem('moleHighScore')||0))$('moleHighScore').textContent=score;playHitSound();chooseMole()}}function setDifficulty(m){if(m==='easy'){moleSpeed=4200;$('difficultyText').textContent='Easy'}if(m==='normal'){moleSpeed=2600;$('difficultyText').textContent='Normal'}if(m==='hard'){moleSpeed=1400;$('difficultyText').textContent='Hard'}}
 function startDoorGame(){go('door');doorLevel=1;doorHealth=3;doorFinished=false;newDoorLevel()}function randBombs(){let s=new Set();while(s.size<2)s.add(Math.floor(Math.random()*5));return [...s]}function hearts(){$('heartBar').innerHTML=[1,2,3].map(i=>`<span class="${i>doorHealth?'lostHeart':''}">${i>doorHealth?'♡':'❤️'}</span>`).join('')}function newDoorLevel(){bombDoors=randBombs();doorBusy=false;hearts();$('levelTrack').innerHTML=[1,2,3,4,5].map(i=>`<div class="levelDot ${i<doorLevel?'done':''} ${i===doorLevel?'active':''}">${i}</div>`).join('');$('doorMessage').innerHTML='<b>Level '+doorLevel+': Choose a safe door</b>';$('doorLog').textContent='2 doors have bombs. Choose a safe door.';$('finishBanner').classList.remove('show');$('loseBanner').classList.remove('show');$('bombOverlay').classList.remove('show');$('doors').innerHTML=fingers.map((f,i)=>`<div class="doorBox"><div id="door${i}" class="door" onclick="chooseDoor(${i})"></div><div class="doorFinger">${f}</div></div>`).join('')}function chooseDoor(i){if(doorBusy||doorFinished)return;doorBusy=true;if(!bombDoors.includes(i)){$('door'+i).classList.add('openSafe');$('doorLog').textContent='Safe door!';setTimeout(()=>{if(doorLevel>=5){doorFinished=true;$('finishBanner').classList.add('show')}else{doorLevel++;newDoorLevel()}},800)}else{$('door'+i).classList.add('openBomb');doorHealth--;hearts();showBomb(i);$('doorLog').textContent='Bomb! Hearts left: '+doorHealth;setTimeout(()=>{$('bombOverlay').classList.remove('show');$('explosion').classList.add('hidden');$('bombIcon').classList.remove('hidden');if(doorHealth<=0){$('loseBanner').classList.add('show');setTimeout(startDoorGame,1600)}else{setTimeout(()=>{const d=$('door'+i);if(d)d.classList.remove('openBomb');doorBusy=false},350)}},1200)}}function showBomb(i){let door=document.querySelectorAll('.door')[i],arena=document.querySelector('.doorArena').getBoundingClientRect(),r=door.getBoundingClientRect();let spot=$('bombSpot');if(!spot){spot=document.createElement('div');spot.id='bombSpot';spot.className='bombSpot';$('bombOverlay').appendChild(spot);spot.appendChild($('bombIcon'));spot.appendChild($('explosion'))}spot.style.left=(r.left+r.width/2-arena.left)+'px';spot.style.top=(r.top+r.height/2-arena.top)+'px';$('bombOverlay').classList.add('show');setTimeout(()=>{$('bombIcon').classList.add('hidden');$('explosion').classList.remove('hidden');playHitSound()},350)}
 function startMemoryGame(){go('memory');let sym=['🍎','🚗','⭐','🎵','🌙','🐟','⚽'];memCards=[...sym,...sym,'🏁'].sort(()=>Math.random()-.5).map(s=>({s,flip:s==='🏁',match:s==='🏁'}));memSelected=0;memFirst=null;memSecond=null;memBusy=false;memMatches=1;memMoves=0;renderMemory()}function renderMemory(){$('memoryBoard').innerHTML=memCards.map((c,i)=>`<div class="memCard ${i===memSelected?'selected':''} ${c.flip||c.match?'flipped':''} ${c.match?'matched':''}" onclick="selectCard(${i})">${c.flip||c.match?c.s:'?'}</div>`).join('');$('matchText').textContent=memMatches+'/8';$('moveText').textContent=memMoves;$('selectedText').textContent=memSelected+1}function selectCard(i=memSelected){if(memBusy)return;let c=memCards[i];if(c.match||c.flip)return;c.flip=true;memMoves++;if(memFirst===null){memFirst=i;$('memoryLog').textContent='Choose another card.'}else{memSecond=i;memBusy=true;if(memCards[memFirst].s===memCards[memSecond].s){memCards[memFirst].match=memCards[memSecond].match=true;memMatches++;$('memoryLog').textContent='Match found!';playHitSound();memFirst=memSecond=null;memBusy=false}else{$('memoryLog').textContent='Not a match.';setTimeout(()=>{memCards[memFirst].flip=false;memCards[memSecond].flip=false;memFirst=memSecond=null;memBusy=false;renderMemory()},800)}}renderMemory();if(memMatches>=8)$('memoryLog').textContent='All cards matched!'}function moveMemory(dx,dy){let r=Math.floor(memSelected/5),c=memSelected%5;r=Math.max(0,Math.min(2,r+dy));c=Math.max(0,Math.min(4,c+dx));memSelected=r*5+c;renderMemory()}
-function parseCsvLine(line){if(!line)return;let lines=String(line).replace(/\r/g,"\n").split("\n").map(x=>x.trim()).filter(x=>x.length>0);if(lines.length===0)return;line=lines[lines.length-1];let data=line.split(',').map(Number);if(data.length<15||data.some(Number.isNaN))return;for(let i=0;i<5;i++){let b=i*3;let incomingRom=data[b],incomingSpeed=data[b+1],incomingForce=data[b+2];if(appCal.active){if(incomingRom<appCal.min[i])appCal.min[i]=incomingRom;if(incomingRom>appCal.max[i])appCal.max[i]=incomingRom;updateCalibrationStatus()}if(appCal.enabled)incomingRom=applyAppCalibration(incomingRom,i);values[i].rom=incomingRom;values[i].speed=values[i].speed+(incomingSpeed-values[i].speed)*smoothAlpha;values[i].force=values[i].force+(incomingForce-values[i].force)*smoothAlpha;peakSpeed[i]=Math.max(peakSpeed[i],Math.abs(incomingSpeed));peakForce[i]=Math.max(peakForce[i],incomingForce)}handleSliderControls();updateUI();setStatus('Live data received');if(!$('exercisePage').classList.contains('hidden')) $('log').textContent='Live data received'}function readFromKodular(){if(window.Kodular&&typeof window.Kodular.getWebViewString==='function'){let csv=window.Kodular.getWebViewString();if(csv&&csv!==lastData){lastData=csv;parseCsvLine(csv)}}}function updateUI(){let exerciseVisible=!$('exercisePage').classList.contains('hidden');let gameVisible=!$('gamePage').classList.contains('hidden');for(let i=0;i<5;i++){let rom=Math.max(0,Math.min(100,values[i].rom));if(exerciseVisible){setTxt('romText'+i,rom.toFixed(0)+'%');setTxt('speedText'+i,values[i].speed.toFixed(0));setTxt('peakSpeedText'+i,peakSpeed[i].toFixed(0));setTxt('forceText'+i,values[i].force.toFixed(0));setTxt('peakForceText'+i,peakForce[i].toFixed(0));setW('romBar'+i,rom);setW('speedBar'+i,Math.abs(values[i].speed));setW('forceBar'+i,values[i].force)}if(gameVisible){setTxt('gameRom'+i,rom.toFixed(0)+'%')}}}function handleSliderControls(){for(let i=0;i<5;i++){if(values[i].rom<25){values[i].armed=true;values[i].doorArmed=true;values[i].navArmed=true}}if(gameRunning&&active>=0&&values[active].armed&&values[active].rom>=55){values[active].armed=false;tapMole(active)}if(!document.getElementById('doorPage').classList.contains('hidden')&&!doorBusy&&!doorFinished){for(let i=0;i<5;i++)if(values[i].doorArmed&&values[i].rom>=55){values[i].doorArmed=false;chooseDoor(i);break}}if(!document.getElementById('memoryPage').classList.contains('hidden')){for(let i=0;i<5;i++)if(values[i].navArmed&&values[i].rom>=55){values[i].navArmed=false;if(i===0)moveMemory(1,0);if(i===1)moveMemory(-1,0);if(i===2)moveMemory(0,-1);if(i===3)moveMemory(0,1);if(i===4)selectCard();break}}}
+function parseCsvLine(line){
+  if(!line)return;
+
+  // ReceiveText(BytesAvailableToReceive) can send partial CSV chunks.
+  // Keep unfinished text in csvBuffer, then use the newest complete VALID 15-value line.
+  csvBuffer += String(line).replace(/\r/g,"\n");
+
+  let parts = csvBuffer.split("\n");
+  csvBuffer = parts.pop() || ""; // keep incomplete last line for next read
+
+  let latestData = null;
+
+  for(let k=parts.length-1;k>=0;k--){
+    let candidate = parts[k].trim();
+    if(!candidate)continue;
+
+    let data = candidate.split(',').map(Number);
+    if(data.length>=15 && !data.slice(0,15).some(Number.isNaN)){
+      latestData = data;
+      break;
+    }
+  }
+
+  // If there is no newline yet, try the current buffer only when it already has 15 valid values.
+  if(!latestData){
+    let candidate = csvBuffer.trim();
+    let data = candidate.split(',').map(Number);
+    if(data.length>=15 && !data.slice(0,15).some(Number.isNaN)){
+      latestData = data;
+      csvBuffer = "";
+    }
+  }
+
+  if(!latestData)return;
+
+  let data = latestData;
+
+  for(let i=0;i<5;i++){
+    let b=i*3;
+    let incomingRom=data[b],incomingSpeed=data[b+1],incomingForce=data[b+2];
+
+    if(appCal.active){
+      if(incomingRom<appCal.min[i])appCal.min[i]=incomingRom;
+      if(incomingRom>appCal.max[i])appCal.max[i]=incomingRom;
+      updateCalibrationStatus();
+    }
+
+    if(appCal.enabled)incomingRom=applyAppCalibration(incomingRom,i);
+
+    // ROM follows the latest potentiometer value directly.
+    values[i].rom=incomingRom;
+
+    // Speed and force stay smoothed to reduce noise.
+    values[i].speed=values[i].speed+(incomingSpeed-values[i].speed)*smoothAlpha;
+    values[i].force=values[i].force+(incomingForce-values[i].force)*smoothAlpha;
+
+    peakSpeed[i]=Math.max(peakSpeed[i],Math.abs(incomingSpeed));
+    peakForce[i]=Math.max(peakForce[i],incomingForce);
+  }
+
+  handleSliderControls();
+  updateUI();
+  setStatus('Live data received');
+}
+
+function readFromKodular(){
+  if(window.Kodular&&typeof window.Kodular.getWebViewString==='function'){
+    let csv=window.Kodular.getWebViewString();
+    if(csv&&csv!==lastData){
+      lastData=csv;
+      parseCsvLine(csv);
+    }
+  }
+}
+
+function updateUI(){let exerciseVisible=!$('exercisePage').classList.contains('hidden');let gameVisible=!$('gamePage').classList.contains('hidden');for(let i=0;i<5;i++){let rom=Math.max(0,Math.min(100,values[i].rom));if(exerciseVisible){setTxt('romText'+i,rom.toFixed(0)+'%');setTxt('speedText'+i,values[i].speed.toFixed(0));setTxt('peakSpeedText'+i,peakSpeed[i].toFixed(0));setTxt('forceText'+i,values[i].force.toFixed(0));setTxt('peakForceText'+i,peakForce[i].toFixed(0));setW('romBar'+i,rom);setW('speedBar'+i,Math.abs(values[i].speed));setW('forceBar'+i,values[i].force)}if(gameVisible){setTxt('gameRom'+i,rom.toFixed(0)+'%')}}}
+function handleSliderControls(){for(let i=0;i<5;i++){if(values[i].rom<25){values[i].armed=true;values[i].doorArmed=true;values[i].navArmed=true}}if(gameRunning&&active>=0&&values[active].armed&&values[active].rom>=55){values[active].armed=false;tapMole(active)}if(!document.getElementById('doorPage').classList.contains('hidden')&&!doorBusy&&!doorFinished){for(let i=0;i<5;i++)if(values[i].doorArmed&&values[i].rom>=55){values[i].doorArmed=false;chooseDoor(i);break}}if(!document.getElementById('memoryPage').classList.contains('hidden')){for(let i=0;i<5;i++)if(values[i].navArmed&&values[i].rom>=55){values[i].navArmed=false;if(i===0)moveMemory(1,0);if(i===1)moveMemory(-1,0);if(i===2)moveMemory(0,-1);if(i===3)moveMemory(0,1);if(i===4)selectCard();break}}}
 function toggleMusic(){let a=$('bgMusic');a.loop=true;a.muted=false;a.playsInline=true;a.volume=$('musicVolume').value/100;if(!a.src||a.src.trim()===''){setStatus('Music file missing. Check the MP3 filename in GitHub.');return}if(a.paused){a.load();let p=a.play();if(p&&typeof p.then==='function'){p.then(()=>$('btnMusic').textContent='Music: On').catch(()=>setStatus('Music blocked or file not loaded. Tap Music again, and check the MP3 filename in GitHub.'))}else{$('btnMusic').textContent='Music: On'}}else{a.pause();$('btnMusic').textContent='Music: Off'}}function applyVolumes(){$('bgMusic').volume=$('musicVolume').value/100;$('hitSound').volume=$('sfxVolume').value/100;$('musicVolumeText').textContent=$('musicVolume').value+'%';$('sfxVolumeText').textContent=$('sfxVolume').value+'%'}
 function startAppCalibration(){appCal.active=true;appCal.enabled=false;appCal.min=[100,100,100,100,100];appCal.max=[0,0,0,0,0];updateCalibrationStatus('Move every fader from minimum to maximum, then press Stop Calibration.')}
 function stopAppCalibration(){appCal.active=false;appCal.enabled=true;updateCalibrationStatus('Calibration applied. App will remap incoming ROM to 0–100%.')}
