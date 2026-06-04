@@ -75,26 +75,33 @@ function parseCsvLine(line){
 
   handleSliderControls();
 
-  let now=performance.now();
-  if(now-lastUiUpdate>uiInterval){
-    updateUI();
-    setStatus('Live data received');
+  updateUI();
+  setStatus('Live data received');
 
-    if(!$('exercisePage').classList.contains('hidden')){
-      $('log').textContent='Live data received';
-    }
-
-    lastUiUpdate=now;
+  if(!$('exercisePage').classList.contains('hidden')){
+    $('log').textContent='Live data received';
   }
 }
-  function readFromKodular(){
-  if(window.Kodular && typeof window.Kodular.getWebViewString === 'function'){
-    let csv = window.Kodular.getWebViewString();
+function readFromKodular(){
+  let csv = "";
 
-    if(csv && csv !== lastData){
-      lastData = csv;
-      parseCsvLine(csv);
-    }
+  // Kodular / App Inventor WebViewer bridge
+  if(window.Kodular && typeof window.Kodular.getWebViewString === 'function'){
+    csv = window.Kodular.getWebViewString();
+  }
+  else if(window.AppInventor && typeof window.AppInventor.getWebViewString === 'function'){
+    csv = window.AppInventor.getWebViewString();
+  }
+  else if(typeof window.WebViewString !== 'undefined'){
+    csv = window.WebViewString;
+  }
+  else if(typeof window.webViewString !== 'undefined'){
+    csv = window.webViewString;
+  }
+
+  if(csv && csv !== lastData){
+    lastData = csv;
+    parseCsvLine(csv);
   }
 }
 
@@ -169,7 +176,10 @@ function stopAppCalibration(){appCal.active=false;appCal.enabled=true;updateCali
 function resetAppCalibration(){appCal.active=false;appCal.enabled=false;appCal.min=[100,100,100,100,100];appCal.max=[0,0,0,0,0];updateCalibrationStatus('Calibration reset. Using ESP32 ROM directly.')}
 function applyAppCalibration(v,i){let range=appCal.max[i]-appCal.min[i];if(range<5)return v;return Math.max(0,Math.min(100,(v-appCal.min[i])*100/range))}
 function updateCalibrationStatus(msg){let e=$('calibrationStatus');if(!e)return;if(msg){e.textContent=msg;return}e.textContent='Calibrating: '+fingers.map((f,i)=>f+' '+Math.round(appCal.min[i])+'-'+Math.round(appCal.max[i])).join(' | ')}function playHitSound(){let h=$('hitSound');h.currentTime=0;h.play().catch(()=>{})}function resetAll(){score=0;peakSpeed=[0,0,0,0,0];peakForce=[0,0,0,0,0];$('score').textContent=0;updateUI();startDoorGame();startMemoryGame();go('menu')}function setTxt(id,t){let e=$(id);if(e)e.textContent=t}function setW(id,w){let e=$(id);if(e)e.style.width=Math.max(0,Math.min(100,w))+'%'}
-window.go=go;window.toggleMusic=toggleMusic;window.applyVolumes=applyVolumes;window.playHitSound=playHitSound;window.startMoleGame=startMoleGame;window.setDifficulty=setDifficulty;window.tapMole=tapMole;window.startDoorGame=startDoorGame;window.chooseDoor=chooseDoor;window.startMemoryGame=startMemoryGame;window.selectCard=selectCard;window.resetAll=resetAll;window.receiveFromKodular=parseCsvLine;
+window.go=go;window.toggleMusic=toggleMusic;window.applyVolumes=applyVolumes;window.playHitSound=playHitSound;window.startMoleGame=startMoleGame;window.setDifficulty=setDifficulty;window.tapMole=tapMole;window.startDoorGame=startDoorGame;window.chooseDoor=chooseDoor;window.startMemoryGame=startMemoryGame;window.selectCard=selectCard;window.resetAll=resetAll;window.receiveFromKodular=function(csv){
+  lastData='';
+  parseCsvLine(csv);
+};
 buildExercise();buildMoles();startMemoryGame();startDoorGame();go('menu');applyVolumes();loadHighScore();setInterval(readFromKodular,30);
 </script>
 </body>
