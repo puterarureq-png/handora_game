@@ -110,6 +110,19 @@ function stopAppCalibration(){appCal.active=false;appCal.enabled=true;updateCali
 function resetAppCalibration(){appCal.active=false;appCal.enabled=false;appCal.min=[100,100,100,100,100];appCal.max=[0,0,0,0,0];updateCalibrationStatus('Calibration reset. Using ESP32 ROM directly.')}
 function applyAppCalibration(v,i){let range=appCal.max[i]-appCal.min[i];if(range<5)return v;return Math.max(0,Math.min(100,(v-appCal.min[i])*100/range))}
 function updateCalibrationStatus(msg){let e=$('calibrationStatus');if(!e)return;if(msg){e.textContent=msg;return}e.textContent='Calibrating: '+currentFingers().map((f,i)=>f+' '+Math.round(appCal.min[i])+'-'+Math.round(appCal.max[i])).join(' | ')}function playHitSound(){let h=$('hitSound');h.currentTime=0;h.play().catch(()=>{})}function resetAll(){score=0;peakSpeed=[0,0,0,0,0];peakForce=[0,0,0,0,0];$('score').textContent=0;updateUI();startDoorGame();startMemoryGame();go('menu')}function setTxt(id,t){let e=$(id);if(e)e.textContent=t}function setW(id,w){let e=$(id);if(e)e.style.width=Math.max(0,Math.min(100,w))+'%'}
+function currentFingers(){
+  if(handMode==='right'){
+    return ['Thumb','Index','Middle','Ring','Pinky'];
+  }
+
+  return ['Thumb','Pinky','Ring','Middle','Index'];
+}
+function mapFingerIndex(i){
+  if(handMode==='right') return i;
+
+  const leftMap = [0,4,3,2,1];
+  return leftMap[i];
+}  
 window.go=go;window.toggleMusic=toggleMusic;window.applyVolumes=applyVolumes;window.playHitSound=playHitSound;window.startMoleGame=startMoleGame;window.setDifficulty=setDifficulty;window.tapMole=tapMole;window.startDoorGame=startDoorGame;window.chooseDoor=chooseDoor;window.startMemoryGame=startMemoryGame;window.selectCard=selectCard;window.resetAll=resetAll;window.setHandMode=setHandMode;window.receiveFromKodular=parseCsvLine;
 buildExercise();buildMoles();updateMemoryControls();startMemoryGame();startDoorGame();go('menu');updateHandModeButtons();applyVolumes();loadHighScore();setInterval(readFromKodular,30);
 </script>
